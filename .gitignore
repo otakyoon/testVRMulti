@@ -1,0 +1,44 @@
+# ---- Unity : dossiers generes ----
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# ---- Solutions et projets generes par l'IDE ----
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.vscode/
+.idea/
+
+# ---- Paquets importes : se retelechargent, inutile en depot ----
+*.unitypackage
+
+# ---- Divers ----
+/Assets/AssetStoreTools*
+/Assets/Plugins/Editor/JetBrains*
+.DS_Store
+Thumbs.db
+sysinfo.txt
+*.apk
+*.aab
+*.unitypackage.meta
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
