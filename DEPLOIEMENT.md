@@ -85,10 +85,15 @@ casque, section **Sources inconnues**.
 
 Les deux casques doivent être **sur le même réseau Wi-Fi**.
 
+Tout se pilote depuis le **panneau posé à gauche du tableau**, dans la scène.
+On le manipule au rayon de la manette, comme n'importe quel élément
+interactif. Les boutons s'adaptent à l'état : les commandes de démarrage
+disparaissent une fois la séance lancée, remplacées par **Quitter la séance**.
+
 **Sur le premier casque — l'hôte**
 
 1. Lancer l'application.
-2. Appuyer sur **Start Host** dans le panneau affiché.
+2. Pointer le panneau et appuyer sur **Héberger la séance**.
 
 Ce casque devient serveur *et* participant : il dessine comme les autres et
 conserve l'historique complet des traits.
@@ -96,10 +101,14 @@ conserve l'historique complet des traits.
 **Sur le second casque — le client**
 
 1. Lancer l'application.
-2. Appuyer sur **Find Servers**. La recherche émet un broadcast UDP toutes les
-   3 secondes.
-3. L'hôte apparaît dans la liste au bout de quelques secondes. Appuyer dessus
-   pour le rejoindre. *(à valider)*
+2. Appuyer sur **Chercher une séance**. La recherche émet un broadcast UDP
+   toutes les 3 secondes.
+3. Les séances trouvées s'ajoutent sous forme de boutons **Rejoindre**, avec
+   l'adresse de l'hôte. Appuyer sur celui qui convient. *(à valider)*
+
+Le bouton **Serveur seul (sans dessiner)** existe aussi : la machine héberge
+et conserve l'historique, mais n'a pas de participant. C'est le mode à choisir
+pour un PC qui sert uniquement de point de rendez-vous.
 
 Une fois connecté, le client reçoit automatiquement tout ce qui a déjà été
 dessiné, par lots de 20 paquets. Un participant qui arrive en cours de séance
@@ -149,8 +158,14 @@ Avant de mobiliser deux casques et un groupe, faites tourner la séance au
 clavier. C'est là que se diagnostiquent tous les problèmes de logique.
 
 1. Produire une version Windows du projet.
-2. Lancer l'exécutable, cliquer **Start Host**.
-3. Lancer une seconde instance, cliquer **Find Servers**, puis rejoindre.
+2. Lancer l'exécutable, cliquer **Héberger la séance** sur le panneau.
+3. Lancer une seconde instance, cliquer **Chercher une séance**, puis
+   **Rejoindre**.
+
+Les HUD de débogage de Mirror restent affichés en haut de l'écran sur PC. Ils
+doublonnent avec le panneau et permettent en plus une connexion par IP
+manuelle, utile si la découverte automatique ne passe pas. Ils sont sans effet
+dans un casque.
 
 Tout ce qui relève du réseau — découverte, partage des traits, rattrapage d'un
 arrivant tardif — se valide intégralement ainsi, sur une seule machine. Les
