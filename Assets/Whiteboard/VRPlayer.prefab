@@ -83,12 +83,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRMarker
   tip: {fileID: 4822741934154075956}
-  rayLength: 0.03
   boardMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  touchDistance: 0.04
+  releaseDistance: 0.07
+  penetrationDepth: 0.15
+  minCutoff: 2
+  beta: 20
+  derivativeCutoff: 1
   color: {r: 0, g: 0, b: 0, a: 1}
   width: 0.004
+  eraserWidth: 0.03
+  penVisual: {fileID: 0}
+  eraserTint: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+  maxUndo: 50
   sendInterval: 0.08
   minUvStep: 0.002
   requireOwnership: 1
@@ -103,6 +112,7 @@ GameObject:
   - component: {fileID: 8326429962123490732}
   - component: {fileID: 8606106485257753659}
   - component: {fileID: 5202677746520482855}
+  - component: {fileID: 3378944848211206536}
   m_Layer: 0
   m_Name: VRPlayer
   m_TagString: Untagged
@@ -162,6 +172,22 @@ MonoBehaviour:
   syncInterval: 0
   head: {fileID: 3699595230226243539}
   rightHand: {fileID: 7317859649739617024}
+--- !u!114 &3378944848211206536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2537754015378070501}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e08c7b8bb8b8da41a97a380b8648ec8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerColor
+  syncMethod: 0
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &3094225305369042655
 GameObject:
   m_ObjectHideFlags: 0

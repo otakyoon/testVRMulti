@@ -26,6 +26,9 @@ public class LocalRigAnchors : MonoBehaviour
     [Tooltip("Laisser vide : la main droite active (controleur ou main suivie) est utilisee.")]
     [SerializeField] Transform rightHandOverride;
 
+    [Tooltip("Laisser vide : la main gauche active (controleur ou main suivie) est utilisee.")]
+    [SerializeField] Transform leftHandOverride;
+
     XROrigin origin;
     XRInputModalityManager modality;
 
@@ -70,6 +73,24 @@ public class LocalRigAnchors : MonoBehaviour
             if (controller != null && controller.activeInHierarchy) return controller.transform;
 
             var hand = modality.rightHand;
+            if (hand != null && hand.activeInHierarchy) return hand.transform;
+
+            return null;
+        }
+    }
+
+    /// <summary>Main libre, qui porte le menu d'outils. Meme resolution que RightHand.</summary>
+    public Transform LeftHand
+    {
+        get
+        {
+            if (leftHandOverride != null) return leftHandOverride;
+            if (modality == null) return null;
+
+            var controller = modality.leftController;
+            if (controller != null && controller.activeInHierarchy) return controller.transform;
+
+            var hand = modality.leftHand;
             if (hand != null && hand.activeInHierarchy) return hand.transform;
 
             return null;

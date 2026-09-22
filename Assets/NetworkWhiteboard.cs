@@ -30,8 +30,12 @@ public class NetworkWhiteboard : NetworkBehaviour
     readonly List<StrokeChunk> history = new List<StrokeChunk>();
     // Dernier point connu par trait, pour raccorder deux paquets consecutifs.
     readonly Dictionary<int, Vector2> lastPoint = new Dictionary<int, Vector2>();
+    // Traits deja dessines localement par prediction : leur echo RPC est ignore.
+    readonly HashSet<int> predictedStrokes = new HashSet<int>();
 
     void Awake() => surface = GetComponent<WhiteboardSurface>();
+
+    public Color Background => surface.Background;
 
     // ---------------- Client -> Serveur ----------------
 
@@ -81,7 +85,13 @@ public class NetworkWhiteboard : NetworkBehaviour
     // ---------------- Serveur -> Clients ----------------
 
     [ClientRpc]
-    void RpcApplyChunk(StrokeChunk chunk) => Apply(chunk);
+    void RpcApplyChunk(StrokeChunk chunk)
+    {
+        // L'auteur a deja trace ce trait en direct : pas de double rendu.
+        // (Le rejeu undo / late joiner, lui, passe par RpcReplay / TargetHistory.)
+        if (predictedStrokes.Contains(chunk.strokeId)) return;
+        Apply(chunk);
+    }
 
     /// <summary>Rejeu par lots vers tous les clients (undo).</summary>
     [ClientRpc]
@@ -106,35 +116,43 @@ public class NetworkWhiteboard : NetworkBehaviour
 
     // ---------------- Commun ----------------
 
+    /// <summary>
+    /// Prediction locale : l'auteur voit son trait a la frame meme, sans
+    /// attendre le paquet de 80 ms ni l'aller-retour serveur.
+    /// </summary>
+    public void PredictPoint(int strokeId, Vector2 uv, Color32 color, float width)
+    {
+        predictedStrokes.Add(strokeId);
+        ApplyPoint(strokeId, uv, color, width);
+    }
+
     void Apply(StrokeChunk chunk)
     {
-        if (chunk.points == null || chunk.points.Length == 0) return;
+        if (chunk.points == null) return;
+        foreach (var pt in chunk.points)
+            ApplyPoint(chunk.strokeId, pt, chunk.color, chunk.width);
+    }
 
+    void ApplyPoint(int strokeId, Vector2 pt, Color32 color, float width)
+    {
         Vector2 prev;
-        int i = 0;
-
-        if (lastPoint.TryGetValue(chunk.strokeId, out var p))
+        if (lastPoint.TryGetValue(strokeId, out var p))
         {
-            prev = p;
             // Le VRMarker reinjecte la queue du paquet precedent en tete du
             // suivant : ce point est deja trace, on le saute pour eviter un
             // tampon redondant a chaque jointure.
-            if (chunk.points[0] == prev) i = 1;
+            if (pt == p) return;
+            prev = p;
         }
         else
         {
-            // Premier paquet du trait : un segment de longueur nulle depose un
+            // Premier point du trait : un segment de longueur nulle depose un
             // point, ce qui est bien le rendu attendu pour une simple touche.
-            prev = chunk.points[0];
+            prev = pt;
         }
 
-        for (; i < chunk.points.Length; i++)
-        {
-            surface.DrawSegment(prev, chunk.points[i], chunk.color, chunk.width);
-            prev = chunk.points[i];
-        }
-
-        lastPoint[chunk.strokeId] = prev;
+        surface.DrawSegment(prev, pt, color, width);
+        lastPoint[strokeId] = pt;
     }
 
     public override void OnStartClient()

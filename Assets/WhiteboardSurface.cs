@@ -17,6 +17,9 @@ public class WhiteboardSurface : MonoBehaviour
 
     RenderTexture rt;
 
+    /// <summary>Couleur de fond : la gomme trace dans cette couleur.</summary>
+    public Color Background => background;
+
     void Awake()
     {
         rt = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGB32);
