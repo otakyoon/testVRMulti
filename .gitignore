@@ -8,6 +8,8 @@
 /[Uu]ser[Ss]ettings/
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
+# fichiers intermediaires du build Android (CMake / ninja)
+/.utmp/
 
 # ---- Solutions et projets generes par l'IDE ----
 *.csproj
