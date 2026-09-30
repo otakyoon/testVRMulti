@@ -100,13 +100,16 @@ public class WhiteboardHandMenu : MonoBehaviour
 
     /// <summary>
     /// Le marqueur du joueur local. En solo (hors reseau), on se rabat sur
-    /// le premier marqueur de la scene.
+    /// le premier marqueur actif de la scene (celui de SoloMarker).
     /// </summary>
     VRMarker Marker
     {
         get
         {
-            if (cachedMarker != null) return cachedMarker;
+            // Le marqueur solo est desactive (pas detruit) pendant une seance :
+            // un cache inactif est perime.
+            if (cachedMarker != null && cachedMarker.isActiveAndEnabled) return cachedMarker;
+            cachedMarker = null;
             if (NetworkClient.localPlayer != null)
                 cachedMarker = NetworkClient.localPlayer.GetComponentInChildren<VRMarker>();
             else if (!NetworkClient.active)

@@ -81,6 +81,20 @@ public class VRMarker : MonoBehaviour
     bool identityResolved;
 
     /// <summary>
+    /// Marqueur hors reseau (cf. SoloMarker) : dessine sans proprietaire.
+    /// A appeler avant l'activation du GameObject.
+    /// </summary>
+    public void UseWithoutNetwork()
+    {
+        requireOwnership = false;
+        identityResolved = false;
+    }
+
+    // Marqueur desactive en plein trait (debut de seance, joueur detruit) :
+    // on envoie ce qui reste plutot que de laisser un trait ouvert.
+    void OnDisable() => EndStroke();
+
+    /// <summary>
     /// Vrai uniquement sur l'instance que le joueur local controle.
     /// Cherche le NetworkIdentity du prefab joueur en remontant la hierarchie.
     /// </summary>
@@ -249,7 +263,7 @@ public class VRMarker : MonoBehaviour
             return;
         }
 
-        board.CmdAddChunk(new StrokeChunk
+        board.SubmitChunk(new StrokeChunk
         {
             strokeId = strokeId,
             color = strokeColor,
@@ -312,7 +326,7 @@ public class VRMarker : MonoBehaviour
             ownStrokes.RemoveAt(ownStrokes.Count - 1);
             if (last.board != null)
             {
-                last.board.CmdUndo(last.id);
+                last.board.RequestUndo(last.id);
                 return;
             }
         }
@@ -324,7 +338,7 @@ public class VRMarker : MonoBehaviour
         EndStroke();
         var target = lastBoard != null ? lastBoard : FindAnyObjectByType<NetworkWhiteboard>();
         if (target == null) return;
-        target.CmdClear();
+        target.RequestClear();
         ownStrokes.RemoveAll(s => s.board == target);
     }
 

@@ -41,6 +41,9 @@ public class LocalRigAnchors : MonoBehaviour
 
         origin = GetComponent<XROrigin>();
         modality = GetComponent<XRInputModalityManager>();
+
+        // Marqueur pour tester le tableau hors seance (cf. SoloMarker).
+        if (!TryGetComponent<SoloMarker>(out _)) gameObject.AddComponent<SoloMarker>();
     }
 
     void OnDestroy()

@@ -17,6 +17,10 @@ public struct StrokeChunk
 /// <summary>
 /// A poser sur le meme GameObject que le WhiteboardSurface.
 /// Le serveur (= le host) detient l'historique et le rejoue aux arrivants tardifs.
+///
+/// Fonctionne aussi HORS SEANCE (test en solo, sans host) : SubmitChunk,
+/// RequestUndo et RequestClear passent par le reseau pendant une seance, et
+/// s'appliquent en local sinon. Le VRMarker n'appelle jamais les Cmd directement.
 /// </summary>
 [RequireComponent(typeof(WhiteboardSurface))]
 public class NetworkWhiteboard : NetworkBehaviour
@@ -26,21 +30,68 @@ public class NetworkWhiteboard : NetworkBehaviour
 
     WhiteboardSurface surface;
 
-    // Historique cote serveur uniquement.
+    // Historique de ce qui est affiche. Fait foi sur le serveur ; les clients
+    // distants en gardent une copie pour que l'undo marche encore apres la seance.
     readonly List<StrokeChunk> history = new List<StrokeChunk>();
     // Dernier point connu par trait, pour raccorder deux paquets consecutifs.
     readonly Dictionary<int, Vector2> lastPoint = new Dictionary<int, Vector2>();
     // Traits deja dessines localement par prediction : leur echo RPC est ignore.
     readonly HashSet<int> predictedStrokes = new HashSet<int>();
 
-    void Awake() => surface = GetComponent<WhiteboardSurface>();
+    // Tous les tableaux de la scene, meme desactives (cf. EnsureVisibleOffline).
+    static readonly List<NetworkWhiteboard> all = new List<NetworkWhiteboard>();
+
+    void Awake()
+    {
+        surface = GetComponent<WhiteboardSurface>();
+        all.Add(this);
+    }
+
+    void OnDestroy() => all.Remove(this);
 
     public Color Background => surface.Background;
+
+    /// <summary>Vrai pendant une seance : les actions passent par le serveur.</summary>
+    bool Online => isClient;
+
+    /// <summary>
+    /// En fin de seance, Mirror DESACTIVE les objets de scene reseau : le
+    /// tableau disparaitrait. Appele chaque frame hors seance par SoloMarker.
+    /// </summary>
+    public static void EnsureVisibleOffline()
+    {
+        foreach (var b in all)
+            if (b != null && !b.gameObject.activeSelf) b.gameObject.SetActive(true);
+    }
+
+    // ---------------- API utilisee par le VRMarker ----------------
+
+    public void SubmitChunk(StrokeChunk chunk)
+    {
+        if (Online) CmdAddChunk(chunk);
+        // Hors seance, les points sont deja traces par PredictPoint : on archive seulement.
+        else if (chunk.points != null && chunk.points.Length > 0) history.Add(chunk);
+    }
+
+    public void RequestUndo(int strokeId)
+    {
+        if (Online) { CmdUndo(strokeId); return; }
+        history.RemoveAll(s => s.strokeId == strokeId);
+        ClearLocal();
+        foreach (var c in history) Apply(c);
+    }
+
+    public void RequestClear()
+    {
+        if (Online) { CmdClear(); return; }
+        history.Clear();
+        ClearLocal();
+    }
 
     // ---------------- Client -> Serveur ----------------
 
     [Command(requiresAuthority = false)]
-    public void CmdAddChunk(StrokeChunk chunk)
+    void CmdAddChunk(StrokeChunk chunk)
     {
         if (chunk.points == null || chunk.points.Length == 0) return;
         history.Add(chunk);
@@ -48,7 +99,7 @@ public class NetworkWhiteboard : NetworkBehaviour
     }
 
     [Command(requiresAuthority = false)]
-    public void CmdClear()
+    void CmdClear()
     {
         history.Clear();
         RpcClear();
@@ -60,7 +111,7 @@ public class NetworkWhiteboard : NetworkBehaviour
     /// KCP des que l'historique depasse quelques milliers d'entrees.
     /// </summary>
     [Command(requiresAuthority = false)]
-    public void CmdUndo(int strokeId)
+    void CmdUndo(int strokeId)
     {
         history.RemoveAll(s => s.strokeId == strokeId);
         RpcClear();
@@ -87,6 +138,7 @@ public class NetworkWhiteboard : NetworkBehaviour
     [ClientRpc]
     void RpcApplyChunk(StrokeChunk chunk)
     {
+        KeepCopy(chunk);
         // L'auteur a deja trace ce trait en direct : pas de double rendu.
         // (Le rejeu undo / late joiner, lui, passe par RpcReplay / TargetHistory.)
         if (predictedStrokes.Contains(chunk.strokeId)) return;
@@ -97,24 +149,36 @@ public class NetworkWhiteboard : NetworkBehaviour
     [ClientRpc]
     void RpcReplay(StrokeChunk[] chunks)
     {
-        foreach (var c in chunks) Apply(c);
+        foreach (var c in chunks) { KeepCopy(c); Apply(c); }
     }
 
     [ClientRpc]
     void RpcClear()
     {
-        lastPoint.Clear();
-        surface.Clear();
+        if (!isServer) history.Clear();
+        ClearLocal();
     }
 
     /// <summary>Rattrapage d'un arrivant tardif, par lots.</summary>
     [TargetRpc]
     void TargetHistory(NetworkConnectionToClient target, StrokeChunk[] chunks)
     {
-        foreach (var c in chunks) Apply(c);
+        foreach (var c in chunks) { KeepCopy(c); Apply(c); }
     }
 
     // ---------------- Commun ----------------
+
+    /// <summary>Copie locale de l'historique sur un client distant (le host a deja l'original).</summary>
+    void KeepCopy(StrokeChunk chunk)
+    {
+        if (!isServer) history.Add(chunk);
+    }
+
+    void ClearLocal()
+    {
+        lastPoint.Clear();
+        surface.Clear();
+    }
 
     /// <summary>
     /// Prediction locale : l'auteur voit son trait a la frame meme, sans
@@ -157,7 +221,12 @@ public class NetworkWhiteboard : NetworkBehaviour
 
     public override void OnStartClient()
     {
-        // Le host a deja tout : seuls les clients distants demandent le rattrapage.
-        if (!isServer) CmdRequestHistory();
+        // Le host a deja tout, y compris ce qu'il a dessine avant d'ouvrir la
+        // seance. Un client distant, lui, remplace son tableau solo par celui
+        // de la seance.
+        if (isServer) return;
+        history.Clear();
+        ClearLocal();
+        CmdRequestHistory();
     }
 }
