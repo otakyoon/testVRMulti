@@ -14,6 +14,9 @@ public class BuildSlot : NetworkBehaviour
 
     GameObject current; // connu du serveur seulement
 
+    // Ce qui est construit ici, ou null. Connu du serveur seulement.
+    public GameObject Current => current;
+
     // Appele par un bouton. On envoie un numero : un prefab ne voyage pas sur le reseau.
     public void Build(int index) => CmdBuild(index);
 
