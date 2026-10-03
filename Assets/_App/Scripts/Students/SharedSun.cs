@@ -26,18 +26,15 @@ public class SharedSun : NetworkBehaviour
     // Le hook : appele quand la nouvelle heure arrive.
     void OnHourChanged(float oldHour, float newHour) => Apply();
 
-    // Appele par le slider.
-    public void SetHour(float newHour)
-    {
-        // Seul le serveur a le droit de changer une SyncVar. (On corrige ca en seance 2.)
-        if (!isServer)
-        {
-            Debug.Log("Seul le serveur peut changer l'heure... pour l'instant !");
-            return;
-        }
+    // Appele par le slider, sur n'importe quel joueur.
+    public void SetHour(float newHour) => CmdSetHour(newHour);
 
-        hour = newHour;
-        Apply(); // sans risque si le hook s'est deja execute
+    // S'execute sur le SERVEUR. Le soleil n'appartient a personne : requiresAuthority = false.
+    // Le hook se charge ensuite d'appeler Apply() chez chaque joueur.
+    [Command(requiresAuthority = false)]
+    void CmdSetHour(float newHour)
+    {
+        hour = Mathf.Clamp(newHour, 5f, 22f); // le serveur verifie toujours ce qu'on lui envoie
     }
 
     // Transforme l'heure en position du soleil.
