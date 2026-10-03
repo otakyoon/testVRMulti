@@ -33,23 +33,36 @@ public class AIText : MonoBehaviour
 
     IEnumerator AskRoutine(string systemPrompt, string userPrompt, Action<string> onPiece, Action<string> onDone)
     {
-        // TODO 1 : la lettre. Une liste de ChatMessage :
-        //          un message "system" (systemPrompt) SEULEMENT s'il n'est pas vide,
-        //          puis un message "user" (userPrompt).
-        //          Puis un ChatRequest : model = config.textModel, stream = true, messages = la liste.ToArray()
+        // 1. La lettre : le role (s'il y en a un), la question, et on demande le streaming
+        var messages = new List<ChatMessage>();
+        if (!string.IsNullOrEmpty(systemPrompt))
+            messages.Add(new ChatMessage { role = "system", content = systemPrompt });
+        messages.Add(new ChatMessage { role = "user", content = userPrompt });
 
-        // TODO 2 : l'enveloppe.
-        //          using var request = new UnityWebRequest(config.textUrl + "/chat/completions", "POST");
-        //          request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(body)));
-        //          + en-tetes "Content-Type" (application/json) et "Authorization" ("Bearer " + config.textKey)
+        var body = new ChatRequest { model = config.textModel, stream = true, messages = messages.ToArray() };
 
-        // TODO 3 : lire les morceaux. Un ChatStreamHandler qui ajoute chaque morceau a "full"
-        //          et appelle onPiece, puis : yield return request.SendWebRequest();
+        // 2. L'enveloppe : l'adresse + qui je suis
+        using var request = new UnityWebRequest(config.textUrl + "/chat/completions", "POST");
+        request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(body)));
+        request.SetRequestHeader("Content-Type", "application/json");
+        request.SetRequestHeader("Authorization", "Bearer " + config.textKey);
 
-        // TODO 4 : en cas d'erreur, Debug.LogError + onDone avec un message ; sinon onDone(full).
+        // 3. On lit la reponse morceau par morceau (ChatStreamHandler est fourni)
+        string full = "";
+        var stream = new ChatStreamHandler(piece => { full += piece; onPiece(piece); });
+        request.downloadHandler = stream;
 
-        onDone("(AIText n'est pas encore ecrit : voir les TODO)");
-        yield break;
+        yield return request.SendWebRequest(); // les morceaux arrivent PENDANT l'attente
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError("[AIText] " + request.error + "\n" + stream.Raw);
+            onDone("(L'IA ne repond pas : " + request.error + ")");
+            yield break;
+        }
+
+        // 4. Fini : la reponse complete
+        onDone(full);
     }
 
     // --- Forme du JSON envoye (fourni) ---
