@@ -14,29 +14,33 @@ public class SharedSun : NetworkBehaviour
     [SerializeField] float maxElevation = 66f; // hauteur du soleil a midi (ete a Nantes : ~66 degres)
     [SerializeField] float northOffset = 0f;   // pour tourner la maison par rapport au nord
 
-    // TODO 1 : partager cette valeur avec tous les joueurs.
-    //          Ajouter au-dessus : [SyncVar(hook = nameof(OnHourChanged))]
+    // Valeur partagee : le serveur la change, Mirror l'envoie a tous les joueurs.
+    [SyncVar(hook = nameof(OnHourChanged))]
     float hour = 12f;
 
     public float Hour => hour;
 
-    // TODO 2 : un joueur qui arrive en retard doit appliquer l'heure actuelle.
-    //          public override void OnStartClient() => Apply();
+    // Un joueur qui arrive en retard recoit l'heure actuelle : on l'applique.
+    public override void OnStartClient() => Apply();
 
-    // TODO 3 : ecrire le hook, appele quand la nouvelle heure arrive.
-    //          void OnHourChanged(float oldHour, float newHour) => Apply();
+    // Le hook : appele quand la nouvelle heure arrive.
+    void OnHourChanged(float oldHour, float newHour) => Apply();
 
     // Appele par le slider.
     public void SetHour(float newHour)
     {
-        // TODO 4 : seul le serveur a le droit de changer une SyncVar.
-        //          if (!isServer) { Debug.Log("Seul le serveur peut changer l'heure... pour l'instant !"); return; }
+        // Seul le serveur a le droit de changer une SyncVar. (On corrige ca en seance 2.)
+        if (!isServer)
+        {
+            Debug.Log("Seul le serveur peut changer l'heure... pour l'instant !");
+            return;
+        }
 
         hour = newHour;
-        Apply();
+        Apply(); // sans risque si le hook s'est deja execute
     }
 
-    // Fourni : transforme l'heure en position du soleil.
+    // Transforme l'heure en position du soleil.
     // 6h : le soleil se leve a l'est. 13h : il est au sud. 20h : il se couche a l'ouest.
     void Apply()
     {
