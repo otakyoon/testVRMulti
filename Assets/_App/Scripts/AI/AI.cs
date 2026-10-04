@@ -136,6 +136,9 @@ public class AI : NetworkBehaviour
         else
         {
             // Hors seance (test en solo) : on appelle l'IA directement.
+            // Mirror desactive les objets de scene a NetworkIdentity tant qu'ils ne sont
+            // pas spawnes : on reactive l'objet AI pour pouvoir lancer la coroutine.
+            if (!instance.gameObject.activeSelf) instance.gameObject.SetActive(true);
             var data = NewTurnData(agent, question, about, player, "Moi", Color.white, 0);
             instance.Run(data, turn.Apply);
         }
